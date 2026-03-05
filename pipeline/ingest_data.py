@@ -3,6 +3,7 @@
 
 from typing import Dict, List
 
+import click
 import pandas as pd
 from sqlalchemy import create_engine
 from tqdm.auto import tqdm
@@ -29,31 +30,41 @@ dtype: Dict[str, str] = {
 parse_dates: List[str] = ["tpep_pickup_datetime", "tpep_dropoff_datetime"]
 
 
-def run():
-    pg_user: str = "root"
-    pg_password: str = "root"
-    pg_host: str = "localhost"
-    pg_port: str = "5432"
-    pg_db: str = "ny_taxi"
+@click.command()
+@click.option("--pg-user", default="root", help="PostgreSQL user")
+@click.option("--pg-pass", default="root", help="PostgreSQL password")
+@click.option("--pg-host", default="localhost", help="PostgreSQL host")
+@click.option("--pg-port", default="5432", help="PostgreSQL port")
+@click.option("--pg-db", default="ny_taxi", help="PostgreSQL database name")
+@click.option("--year", default=2021, type=int, help="Year of data")
+@click.option("--month", default=1, type=int, help="Month of data")
+@click.option("--target-table", default="yellow_taxi_data", help="Target table name")
+@click.option("--chunck-size", default=10000, type=int, help="Chunk size for reading")
+def run(
+    pg_user,
+    pg_pass,
+    pg_host,
+    pg_port,
+    pg_db,
+    year,
+    month,
+    target_table,
+    chunck_size,
+):
 
-    year: int = 2021
-    month: int = 1
-
-    target_table : str = "yellow_taxi_data"
-
-    chunck_size: int = 10000
-
-    prefix: str = "https://github.com/DataTalksClub/nyc-tlc-data/releases/download/yellow"
+    prefix: str = (
+        "https://github.com/DataTalksClub/nyc-tlc-data/releases/download/yellow"
+    )
     url: str = f"{prefix}/yellow_tripdata_{year}-{month:02d}.csv.gz"
 
     engine = create_engine(
-        f"postgresql://{pg_user}:{pg_password}@{pg_host}:{pg_port}/{pg_db}"
+        f"postgresql://{pg_user}:{pg_pass}@{pg_host}:{pg_port}/{pg_db}"
     )
 
     df_iter = pd.read_csv(
         url,
-        dtype=dtype, #type: ignore
-        parse_dates=parse_dates, #type: ignore
+        dtype=dtype,  # type: ignore
+        parse_dates=parse_dates,  # type: ignore
         chunksize=chunck_size,
         compression="gzip",
     )
@@ -63,9 +74,7 @@ def run():
     for df_chunk in tqdm(df_iter):
         if first:
             # Create table schema (no data)
-            df_chunk.head(0).to_sql(
-                name=target_table, con=engine, if_exists="replace"
-            )
+            df_chunk.head(0).to_sql(name=target_table, con=engine, if_exists="replace")
             first = False
             print("Table created")
 
@@ -74,4 +83,4 @@ def run():
 
 
 if __name__ == "__main__":
-    run()
+    run() # pylint: disable=no-value-for-parameter
