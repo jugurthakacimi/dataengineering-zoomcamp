@@ -21,7 +21,7 @@ docker run -it \
 
   ## pipeline that add data to database
 docker run -it --rm \
---network=pg-network \
+--network=pipeline_default \
   taxi_ingest:v001 \
   --pg-user=root \
   --pg-pass=root \
